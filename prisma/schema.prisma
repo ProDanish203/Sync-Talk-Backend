@@ -35,21 +35,42 @@ model User {
   forgotPasswordToken       String?
   forgotPasswordTokenExpiry DateTime?
 
-  isDeleted Boolean @default(false)
+  deletedAt DateTime?
 
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  sentRequests     FriendRequest[] @relation("SentRequests")
-  receivedRequests FriendRequest[] @relation("ReceivedRequests")
-  blockedUsers     BlockedUser[]   @relation("UserBlockedList")
-  blockedByUsers   BlockedUser[]   @relation("BlockedByUser")
-  Chat             Chat?           @relation(fields: [chatId], references: [id])
-  chatId           String?         @db.Uuid
-  Message          Message[]       @relation("MessageSentBy")
-  readMessages     Message[]       @relation("MessageReadBy")
+  sentRequests     FriendRequest[]    @relation("SentRequests")
+  receivedRequests FriendRequest[]    @relation("ReceivedRequests")
+  blockedUsers     BlockedUser[]      @relation("UserBlockedList")
+  blockedByUsers   BlockedUser[]      @relation("BlockedByUser")
+  chatId           String?            @db.Uuid
+  Message          Message[]          @relation("MessageSentBy")
+  readMessages     Message[]          @relation("MessageReadBy")
+  group            Group[]            @relation("GroupCreatedBy")
+  adminGroups      Group[]            @relation("GroupAdmins")
+  chatParticipants ChatParticipants[]
+  friends          Friend[]           @relation("UserFriends")
+  friendOf         Friend[]           @relation("FriendOf")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([username])
   @@index([email])
+}
+
+model Friend {
+  id       String @id @unique @default(uuid()) @db.Uuid
+  userId   String @db.Uuid
+  friendId String @db.Uuid
+
+  user   User @relation("UserFriends", fields: [userId], references: [id])
+  friend User @relation("FriendOf", fields: [friendId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
 }
 
 model FriendRequest {
@@ -77,27 +98,53 @@ model BlockedUser {
   user        User @relation("UserBlockedList", fields: [userId], references: [id])
   blockedUser User @relation("BlockedByUser", fields: [blockedUserId], references: [id])
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@unique([userId, blockedUserId])
   @@index([userId])
   @@index([blockedUserId])
 }
 
 model Chat {
-  id           String    @id @unique @default(uuid()) @db.Uuid
-  participants User[]
+  id           String             @id @unique @default(uuid()) @db.Uuid
+  participants ChatParticipants[]
   messages     Message[]
+
+  lastMessage   Message? @relation("LastMessage", fields: [lastMessageId], references: [id])
+  lastMessageId String?  @unique
+
+  type    chatType @default(PRIVATE)
+  group   Group?   @relation(fields: [groupId], references: [id])
+  groupId String?  @db.Uuid
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+model ChatParticipants {
+  id       String    @id @unique @default(uuid()) @db.Uuid
+  userId   String    @db.Uuid
+  chatId   String    @db.Uuid
+  joinedAt DateTime  @default(now())
+  leftAt   DateTime?
+  user     User      @relation(fields: [userId], references: [id])
+  chat     Chat      @relation(fields: [chatId], references: [id])
+
+  @@unique([userId, chatId])
+  @@index([chatId])
+}
+
 model Message {
-  id       String  @id @unique @default(uuid()) @db.Uuid
-  message  String
-  senderId String  @db.Uuid
-  chatId   String  @db.Uuid
-  media    Media[]
-  readBy   User[]  @relation("MessageReadBy")
+  id        String  @id @unique @default(uuid()) @db.Uuid
+  message   String
+  senderId  String  @db.Uuid
+  chatId    String  @db.Uuid
+  mediaId   String? @db.Uuid
+  replyToId String? @db.Uuid
+
+  media  Media[]
+  readBy User[]  @relation("MessageReadBy")
 
   replyTo Message?  @relation("RepliedTo", fields: [replyToId], references: [id])
   replies Message[] @relation("RepliedTo")
@@ -106,9 +153,23 @@ model Message {
 
   chat Chat @relation(fields: [chatId], references: [id])
 
-  mediaId String? @db.Uuid
+  chatWithLastMessage Chat? @relation("LastMessage")
 
-  replyToId String? @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Group {
+  id          String  @id @unique @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  coverImage  String?
+  createdById String  @db.Uuid
+
+  admins User[] @relation("GroupAdmins")
+
+  createdBy User   @relation("GroupCreatedBy", fields: [createdById], references: [id])
+  Chat      Chat[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -152,4 +213,10 @@ enum LoginProvider {
   EMAIL
   GOOGLE
   FACEBOOK
+}
+
+enum chatType {
+  PRIVATE
+  GROUP
+  BOT
 }
