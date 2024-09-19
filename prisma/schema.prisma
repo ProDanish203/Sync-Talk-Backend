@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id       String @id @unique @default(uuid())
+  id       String @id @unique @default(uuid()) @db.Uuid
   username String
   fullname String
   avatar   String
@@ -37,14 +31,116 @@ model User {
 
   refreshToken              String?
   verifyToken               String?
-  verifyTokenExpiry         String?
+  verifyTokenExpiry         DateTime?
   forgotPasswordToken       String?
-  forgotPasswordTokenExpiry String?
+  forgotPasswordTokenExpiry DateTime?
 
   isDeleted Boolean @default(false)
 
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+  blockedUsers     BlockedUser[]   @relation("UserBlockedList")
+  blockedByUsers   BlockedUser[]   @relation("BlockedByUser")
+  Chat             Chat?           @relation(fields: [chatId], references: [id])
+  chatId           String?         @db.Uuid
+  Message          Message[]       @relation("MessageSentBy")
+  readMessages     Message[]       @relation("MessageReadBy")
+
+  @@index([username])
+  @@index([email])
+}
+
+model FriendRequest {
+  id     String        @id @unique @default(uuid()) @db.Uuid
+  fromId String        @db.Uuid
+  toId   String        @db.Uuid
+  status RequestStatus @default(PENDING)
+
+  from User @relation("SentRequests", fields: [fromId], references: [id])
+  to   User @relation("ReceivedRequests", fields: [toId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([fromId])
+  @@index([toId])
+}
+
+model BlockedUser {
+  id            String      @id @unique @default(uuid()) @db.Uuid
+  userId        String      @db.Uuid
+  blockedUserId String      @db.Uuid
+  status        BlockStatus @default(BLOCKED)
+
+  user        User @relation("UserBlockedList", fields: [userId], references: [id])
+  blockedUser User @relation("BlockedByUser", fields: [blockedUserId], references: [id])
+
+  @@unique([userId, blockedUserId])
+  @@index([userId])
+  @@index([blockedUserId])
+}
+
+model Chat {
+  id           String    @id @unique @default(uuid()) @db.Uuid
+  participants User[]
+  messages     Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id       String  @id @unique @default(uuid()) @db.Uuid
+  message  String
+  senderId String  @db.Uuid
+  chatId   String  @db.Uuid
+  media    Media[]
+  readBy   User[]  @relation("MessageReadBy")
+
+  replyTo Message?  @relation("RepliedTo", fields: [replyToId], references: [id])
+  replies Message[] @relation("RepliedTo")
+
+  sender User @relation("MessageSentBy", fields: [senderId], references: [id])
+
+  chat Chat @relation(fields: [chatId], references: [id])
+
+  mediaId String? @db.Uuid
+
+  replyToId String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Media {
+  id        String    @id @unique @default(uuid()) @db.Uuid
+  url       String
+  type      MediaType
+  messageId String?   @db.Uuid
+
+  message Message? @relation(fields: [messageId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum BlockStatus {
+  BLOCKED
+  UNBLOCKED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
 }
 
 enum Role {
