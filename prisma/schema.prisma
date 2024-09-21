@@ -112,7 +112,7 @@ model Chat {
   messages     Message[]
 
   lastMessage   Message? @relation("LastMessage", fields: [lastMessageId], references: [id])
-  lastMessageId String?  @unique
+  lastMessageId String?  @unique @db.Uuid
 
   type    chatType @default(PRIVATE)
   group   Group?   @relation(fields: [groupId], references: [id])
@@ -191,6 +191,7 @@ enum MediaType {
   IMAGE
   VIDEO
   AUDIO
+  DOCUMENT
 }
 
 enum BlockStatus {
