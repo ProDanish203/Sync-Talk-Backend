@@ -6,12 +6,13 @@ import {
   UploadedFile,
   Res,
   Req,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/create-auth.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MulterFile } from 'src/common/types/type';
-import { Request, Response, response } from 'express';
+import { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -21,7 +22,7 @@ export class AuthController {
   @UseInterceptors(FileInterceptor('image'))
   register(
     @UploadedFile() image: MulterFile,
-    @Body() registerDto: RegisterDto,
+    @Body(ValidationPipe) registerDto: RegisterDto,
   ) {
     return this.authService.register(registerDto, image);
   }
@@ -29,7 +30,7 @@ export class AuthController {
   @Post('login')
   login(
     @Res({ passthrough: true }) response: Response,
-    @Body() loginDto: LoginDto,
+    @Body(ValidationPipe) loginDto: LoginDto,
   ) {
     return this.authService.login(response, loginDto);
   }
