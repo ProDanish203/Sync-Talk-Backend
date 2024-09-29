@@ -19,7 +19,7 @@ export const userSelect = {
   updatedAt: true,
 } satisfies Prisma.UserSelect;
 
-export const minialUserSelect = {
+export const minimalUserSelect = {
   id: true,
   username: true,
   email: true,
