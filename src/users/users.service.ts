@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { Request } from 'express';
 import { minimalUserSelect, userSelect } from 'src/common/queries/user';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { PaginationInfo, QueryParams } from 'src/common/types/type';
@@ -74,6 +75,19 @@ export class UsersService {
         message: 'User found',
         success: true,
       };
+    } catch (error) {
+      throw throwError(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async currentUser(req: Request) {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: req.user.id,
+        },
+        select: minimalUserSelect,
+      });
     } catch (error) {
       throw throwError(error.message, HttpStatus.BAD_REQUEST);
     }
