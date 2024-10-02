@@ -27,7 +27,7 @@ export class UsersController {
   @Get(':id')
   @UseGuards(AuthGuard)
   @Roles(...Object.values(Role))
-  findOne(@Param() { id }: { id: string }) {
+  findOne(@Param('id') { id }: { id: string }) {
     return this.usersService.findOne(id);
   }
 }

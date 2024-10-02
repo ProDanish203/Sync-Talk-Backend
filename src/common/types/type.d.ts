@@ -8,6 +8,11 @@ export interface QueryParams {
   search?: string;
 }
 
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
 export interface PaginationInfo {
   totalCount: number;
   page: number;
