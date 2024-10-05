@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 
 export interface QueryParams {
   page?: number;
@@ -31,3 +31,12 @@ export interface MulterFile {
   buffer: Buffer;
   filename: string;
 }
+
+type UserPayload = Prisma.UserGetPayload<{
+  select: {
+    id: true;
+    email: true;
+    username: true;
+    role: true;
+  };
+}>;
