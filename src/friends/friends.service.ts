@@ -52,6 +52,47 @@ export class FriendsService {
     }
   }
 
+  async getSentFriendRequests(query: PaginationParams, req: Request) {
+    const { page = 1, limit = 30 } = query;
+    const skip = (page - 1) * limit;
+    try {
+      const where = {
+        fromId: req.user.id,
+        status: 'PENDING',
+      } as Prisma.FriendRequestWhereInput;
+      const [friendRequests, totalCount] = await Promise.all([
+        this.prisma.friendRequest.findMany({
+          where,
+          skip: skip,
+          take: limit,
+        }),
+        this.prisma.friendRequest.count({
+          where,
+        }),
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
+
+      const pagination: PaginationInfo = {
+        totalCount,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      };
+
+      return {
+        data: friendRequests,
+        pagination,
+        message: 'Friend requests retrieved',
+        success: true,
+      };
+    } catch (error) {
+      throw throwError(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   async sendFriendRequest(id: string, req: Request) {
     try {
       if (req.user.id === id)

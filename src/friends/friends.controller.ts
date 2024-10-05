@@ -29,6 +29,16 @@ export class FriendsController {
     return this.friendsService.getFriendRequests(query, request);
   }
 
+  @Get('requests/sent')
+  @UseGuards(AuthGuard)
+  @Roles(...Object.values(Role))
+  getSentFriendRequests(
+    @Req() request: Request,
+    @Query() query: PaginationParams,
+  ) {
+    return this.friendsService.getSentFriendRequests(query, request);
+  }
+
   @Post('request/:id')
   @UseGuards(AuthGuard)
   @Roles(...Object.values(Role))
